@@ -1,0 +1,5 @@
+error: No path should end with a '/'. Remove the trailing '/'.
+ --> tests/30-trailing_slash.rs:5:13
+  |
+5 |     #[route("/users/")]
+  |             ^^^^^^^^^

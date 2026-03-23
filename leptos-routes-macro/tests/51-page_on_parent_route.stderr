@@ -1,0 +1,8 @@
+error: page!() must only be used on leaf routes (without children).
+
+         = help: Replace `page!()` with `layout!()` and/or `index!()`, or remove child routes to make this a leaf route.
+
+ --> tests/51-page_on_parent_route.rs:7:9
+  |
+7 |         page!(UsersPage);
+  |         ^^^^

@@ -1,0 +1,5 @@
+error: Route modules must not have a visibility modifier. The `#[route]` macro automatically makes them public. Use `mod root` instead.
+ --> tests/52-pub_route_module_error.rs:6:5
+  |
+6 |     pub mod root {}
+  |     ^^^

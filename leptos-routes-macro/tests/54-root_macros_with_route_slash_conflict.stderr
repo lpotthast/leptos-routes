@@ -1,0 +1,5 @@
+error: Cannot use #[route("/")] when the #[routes] module has root-level macros (layout!/index!/page!) or a path= argument. Move your layout!/index! into the #[route("/")] module, or remove #[route("/")] and use root-level macros instead.
+ --> tests/54-root_macros_with_route_slash_conflict.rs:7:7
+  |
+7 |     #[route("/")]
+  |       ^^^^^

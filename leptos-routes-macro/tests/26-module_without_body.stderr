@@ -1,0 +1,13 @@
+error[E0658]: file modules in proc macro input are unstable
+ --> tests/26-module_without_body.rs:4:1
+  |
+4 | pub mod routes;
+  | ^^^^^^^^^^^^^^^
+  |
+  = note: see issue #54727 <https://github.com/rust-lang/rust/issues/54727> for more information
+
+error: routes macro requires a module with a body
+ --> tests/26-module_without_body.rs:4:9
+  |
+4 | pub mod routes;
+  |         ^^^^^^

@@ -1,0 +1,11 @@
+[package]
+name = "routes-only"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+leptos-routes = { path = "../../leptos-routes" }
+leptos_router = { version = "0.8", features = ["ssr"] }

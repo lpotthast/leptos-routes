@@ -1,0 +1,5 @@
+error: Wildcard segments (e.g., `*name`) must be the last segment in a path. Move the wildcard to the end of "/*rest/foo".
+ --> tests/33-wildcard_not_last_segment.rs:5:7
+  |
+5 |     #[route("/*rest/foo")]
+  |       ^^^^^

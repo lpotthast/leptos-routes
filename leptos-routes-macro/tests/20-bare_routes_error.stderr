@@ -1,0 +1,5 @@
+error: A fallback!() is required when views are generated. Add `fallback!(YourFallback)` inside the module body, or use #[routes(without_views)] to disable view generation.
+ --> tests/20-bare_routes_error.rs:4:9
+  |
+4 | pub mod routes {
+  |         ^^^^^^

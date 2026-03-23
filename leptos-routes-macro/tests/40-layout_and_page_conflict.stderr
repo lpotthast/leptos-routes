@@ -1,0 +1,5 @@
+error: Cannot use both layout!() and page!() in the same module. Use layout!() for parent routes (with children) or page!() for leaf routes.
+  --> tests/40-layout_and_page_conflict.rs:10:9
+   |
+10 |         page!(Home);
+   |         ^^^^

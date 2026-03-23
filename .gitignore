@@ -1,5 +1,6 @@
 # Ignore the Rust compiler output.
 /target
+/examples/*/target
 
 # Ignore MacOS related files.
 .DS_Store

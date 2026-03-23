@@ -1,0 +1,5 @@
+error: Cannot use both index!() and page!() in the same module. index!() is for parent routes (alongside layout!()), page!() is for leaf routes (without children).
+  --> tests/41-index_and_page_conflict.rs:11:9
+   |
+11 |         page!(Home);
+   |         ^^^^

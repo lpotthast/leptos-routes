@@ -1,0 +1,5 @@
+error: path must not end with "/". Remove the trailing "/".
+ --> tests/35-routes_path_trailing_slash.rs:3:32
+  |
+3 | #[routes(without_views, path = "/api/")]
+  |                                ^^^^^^^

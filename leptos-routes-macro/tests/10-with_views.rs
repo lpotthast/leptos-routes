@@ -1,49 +1,66 @@
-use assertr::assert_that;
-use assertr::prelude::PartialEqAssertions;
+use assertr::prelude::*;
 use leptos::prelude::*;
 use leptos_router::components::{Outlet, Router};
 use leptos_router::location::RequestUrl;
-use leptos_router::StaticSegment;
 use leptos_routes::routes;
 
-#[routes(with_views, fallback = "|| view! { <FallbackComponent/> }")]
+#[routes]
 pub mod routes {
+    fallback!(|| view! { <FallbackComponent/> });
 
     // A route without any segment.
-    #[route("/", layout = "MainLayout", fallback = "PageDashboard")]
-    pub mod root {
+    #[route("/")]
+    mod root {
+        layout!(MainLayout);
+        index!(PageDashboard);
 
-        // A route with a single static segments.
-        #[route("/welcome", view = "PageWelcome")]
-        pub mod welcome {}
+        // A route with a single static segment.
+        #[route("/welcome")]
+        mod welcome {
+            page!(PageWelcome);
+        }
 
         // A route with multiple static segments.
-        #[route("/foo/bar", view = "SomePage")]
-        pub mod multiple_static {}
+        #[route("/foo/bar")]
+        mod multiple_static {
+            page!(SomePage);
+        }
 
         // A route with multiple segments, not being all static.
-        #[route("/foo/:bar", view = "SomePage")]
-        pub mod multiple_dynamic {}
+        #[route("/foo/:bar")]
+        mod multiple_dynamic {
+            page!(SomePage);
+        }
 
         // A route with all types of segments.
         // This route also uses the rust keyword `type` that must be handled.
-        #[route("/complex/:foo/:type?/*baz", view = "SomePage")]
-        pub mod complex {}
+        #[route("/complex/:foo/:type?/*baz")]
+        mod complex {
+            page!(SomePage);
+        }
 
         // Nested routes.
-        #[route("/users", layout = "UsersLayout", fallback = "NoUser")]
-        pub mod users {
+        #[route("/users")]
+        mod users {
+            layout!(UsersLayout);
+            index!(NoUser);
 
-            // The `wrap` attribute on modules containing children is optional!
-            #[route("/:id", layout = "UserLayout", fallback="User")]
-            pub mod user {
+            // The 'layout' attribute on modules containing children is optional!
+            #[route("/:id")]
+            mod user {
+                layout!(UserLayout);
+                index!(User);
 
                 // This has the same name as a root-level route. That must not lead to a name clash!
-                #[route("/settings", view = "UserSettings")]
-                pub mod welcome {}
+                #[route("/settings")]
+                mod welcome {
+                    page!(UserSettings);
+                }
 
-                #[route("/details", view = "UserDetails")]
-                pub mod details {}
+                #[route("/details")]
+                mod details {
+                    page!(UserDetails);
+                }
             }
         }
     }
@@ -136,31 +153,25 @@ fn main() {
     fn app() -> impl IntoView {
         view! {
             <Router>
-                { routes::generated_routes() }
+                { routes::route_tree() }
             </Router>
         }
     }
 
-    let _ = Owner::new_root(None);
-
-    assert_that(routes::Root.path()).is_equal_to(());
-    assert_that(routes::Root.materialize()).is_equal_to("/");
-
-    assert_that(routes::root::Welcome.path()).is_equal_to((StaticSegment("welcome"),));
-    assert_that(routes::root::Welcome.materialize()).is_equal_to("/welcome");
+    let _owner = Owner::new_root(None);
 
     provide_context::<RequestUrl>(RequestUrl::default());
-    assert_that(app().to_html()).is_equal_to(r#"<div id="main-layout">Dashboard</div>"#);
+    assert_that!(app().to_html()).is_equal_to(r#"<div id="main-layout">Dashboard</div>"#);
 
     provide_context::<RequestUrl>(RequestUrl::new(
         routes::root::Welcome.materialize().as_str(),
     ));
-    assert_that(app().to_html()).is_equal_to(r#"<div id="main-layout">Welcome</div>"#);
+    assert_that!(app().to_html()).is_equal_to(r#"<div id="main-layout">Welcome</div>"#);
 
     provide_context::<RequestUrl>(RequestUrl::new(
         routes::root::users::user::Details
             .materialize("42")
             .as_str(),
     ));
-    assert_that(app().to_html()).is_equal_to(r#"<div id="main-layout"><div id="users-layout"><div id="user-layout">UserDetails</div></div></div>"#);
+    assert_that!(app().to_html()).is_equal_to(r#"<div id="main-layout"><div id="users-layout"><div id="user-layout">UserDetails</div></div></div>"#);
 }

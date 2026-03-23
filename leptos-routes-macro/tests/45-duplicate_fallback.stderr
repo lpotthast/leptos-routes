@@ -1,0 +1,5 @@
+error: Duplicate fallback!() invocation. Only one fallback!() per #[routes] module is allowed.
+ --> tests/45-duplicate_fallback.rs:7:5
+  |
+7 |     fallback!(|| view! { "also 404" });
+  |     ^^^^^^^^

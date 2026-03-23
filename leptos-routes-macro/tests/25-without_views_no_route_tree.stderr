@@ -1,0 +1,5 @@
+error[E0425]: cannot find function `route_tree` in module `routes`
+  --> tests/25-without_views_no_route_tree.rs:13:21
+   |
+13 |     let _ = routes::route_tree();
+   |                     ^^^^^^^^^^ not found in `routes`

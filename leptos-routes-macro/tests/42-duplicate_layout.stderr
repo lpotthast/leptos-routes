@@ -1,0 +1,13 @@
+error: Duplicate layout!() invocation. Only one layout!() per module is allowed.
+  --> tests/42-duplicate_layout.rs:10:9
+   |
+10 |         layout!(|| view! { "layout 2" });
+   |         ^^^^^^
+
+warning: unused import: `leptos::prelude::*`
+ --> tests/42-duplicate_layout.rs:1:5
+  |
+1 | use leptos::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default

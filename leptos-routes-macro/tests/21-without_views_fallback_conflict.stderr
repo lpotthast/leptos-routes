@@ -1,0 +1,5 @@
+error: fallback!() cannot be used with "without_views", as no views are generated.
+ --> tests/21-without_views_fallback_conflict.rs:4:9
+  |
+4 | pub mod routes {
+  |         ^^^^^^

@@ -14,4 +14,4 @@ categories = ["web-programming", "gui"]
 keywords = ["leptos-routes", "leptos", "routes", "routing", "router"]
 
 [dependencies]
-leptos-routes-macro = { version = "0.3.0", path = "../leptos-routes-macro" }
+leptos-routes-macro = { version = "0.4.0", path = "../leptos-routes-macro" }

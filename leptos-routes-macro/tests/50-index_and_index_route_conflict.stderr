@@ -1,0 +1,5 @@
+error: Conflicting index route: this module already has `index!()`. Use either `index!()` or a `#[route("/")]` child, not both.
+ --> tests/50-index_and_index_route_conflict.rs:9:11
+  |
+9 |         #[route("/")]
+  |           ^^^^^

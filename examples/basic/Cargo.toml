@@ -1,0 +1,15 @@
+[package]
+name = "basic"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+axum = "0.8"
+leptos = { version = "0.8", features = ["ssr"] }
+leptos-routes = { path = "../../leptos-routes" }
+leptos_axum = "0.8"
+leptos_router = { version = "0.8", features = ["ssr"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
