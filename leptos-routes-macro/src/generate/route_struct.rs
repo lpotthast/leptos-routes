@@ -90,7 +90,7 @@ fn generate_view_methods(route_def: &RouteDef) -> proc_macro2::TokenStream {
 
     if let Some(expr) = &route_def.layout {
         methods.extend(quote! {
-            pub fn layout(&self) -> impl ::leptos_router::ChooseView + Clone + 'static {
+            pub fn layout(&self) -> impl ::leptos_router::ChooseView {
                 #super_import
                 #expr
             }
@@ -99,7 +99,7 @@ fn generate_view_methods(route_def: &RouteDef) -> proc_macro2::TokenStream {
 
     if let Some(expr) = &route_def.page {
         methods.extend(quote! {
-            pub fn page(&self) -> impl ::leptos_router::ChooseView + Clone + 'static {
+            pub fn page(&self) -> impl ::leptos_router::ChooseView {
                 #super_import
                 #expr
             }
@@ -108,7 +108,7 @@ fn generate_view_methods(route_def: &RouteDef) -> proc_macro2::TokenStream {
 
     if let Some(expr) = &route_def.index {
         methods.extend(quote! {
-            pub fn index(&self) -> impl ::leptos_router::ChooseView + Clone + 'static {
+            pub fn index(&self) -> impl ::leptos_router::ChooseView {
                 #super_import
                 #expr
             }

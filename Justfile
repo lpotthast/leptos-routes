@@ -22,6 +22,9 @@ msrv:
 clippy:
     cargo clippy --all -- -W clippy::pedantic
 
+trybuild-overwrite:
+    TRYBUILD=overwrite cargo test -p leptos-routes-macro
+
 # Update all deps; sort all Cargo.toml deps; format, check and lint all code; run all tests.
 tidy:
     cargo update --workspace
