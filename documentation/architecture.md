@@ -99,10 +99,10 @@ produce the Leptos Router view tree.
 
 This is the central design constraint that explains why type checking is split across the two phases.
 
-The generated struct methods enforce `ChooseView + Clone + 'static`:
+The generated struct methods enforce `ChooseView`:
 
 ```rust
-pub fn layout(&self) -> impl ::leptos_router::ChooseView + Clone + 'static {
+pub fn layout(&self) -> impl ::leptos_router::ChooseView {
     #[allow(clippy::wildcard_imports)]
     use super::super::super::*;
     MainLayout

@@ -958,14 +958,14 @@ dependencies = [
 
 [[package]]
 name = "leptos-routes"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "leptos-routes-macro",
 ]
 
 [[package]]
 name = "leptos-routes-macro"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-03-23
+
+### Fixed
+
+- `layout`, `index` and `page` method's return type is now just `impl ::leptos_router::ChooseView`. `ChooseView` already
+  specifies required bounds (`Send + Clone + 'static`). Re-specifying them ourselves would lead to
+  [clippy:implied_bounds_in_impls](https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#implied_bounds_in_impls)
+  errors being emitted by clippy.
+- Compatibility message for old code still specifying `#[routes(with_views)]`
+
 ## [0.4.0] - 2026-03-23
 
 ### Added
@@ -91,7 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `Route` enum with a variant per route.
 - Recursive `materialize()` building full URLs through the parent chain.
 
-[Unreleased]: https://github.com/lpotthast/leptos-routes/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/lpotthast/leptos-routes/compare/v0.4.1...HEAD
+
+[0.4.1]: https://github.com/lpotthast/leptos-routes/compare/v0.4.0..v0.4.1
 
 [0.4.0]: https://github.com/lpotthast/leptos-routes/compare/v0.3.1...v0.4.0
 
