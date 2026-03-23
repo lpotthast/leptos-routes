@@ -1,0 +1,11 @@
+error: "fallback" is no longer an attribute argument. Use the fallback!() body macro inside the module instead. Example:
+
+       #[routes]
+       pub mod routes {
+           fallback!(YourFallback);
+           // ...
+       }
+ --> tests/23-fallback_migration_error.rs:3:10
+  |
+3 | #[routes(fallback = || "not found")]
+  |          ^^^^^^^^

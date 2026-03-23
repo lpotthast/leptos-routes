@@ -1,0 +1,5 @@
+error: page!() at root level requires no child #[route] modules. Use layout!() and/or index!() for parent routes, or remove child routes to make this a leaf.
+ --> tests/55-root_page_with_children_error.rs:5:5
+  |
+5 |     page!(Home);
+  |     ^^^^

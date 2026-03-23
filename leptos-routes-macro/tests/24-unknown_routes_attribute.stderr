@@ -1,0 +1,5 @@
+error: Unknown attribute: "something_random". Expected "without_views" or "path".
+ --> tests/24-unknown_routes_attribute.rs:3:10
+  |
+3 | #[routes(something_random)]
+  |          ^^^^^^^^^^^^^^^^

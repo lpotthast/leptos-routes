@@ -1,0 +1,8 @@
+error: Leaf routes (without children) require a page!() declaration.
+
+         = help: Add `page!(YourPage)` inside the module body.
+
+  --> tests/53-leaf_route_without_page.rs:13:7
+   |
+13 |     #[route("/about")]
+   |       ^^^^^

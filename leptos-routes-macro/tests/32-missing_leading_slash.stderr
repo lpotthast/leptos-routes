@@ -1,0 +1,5 @@
+error: Every path must start with a '/'. Add a leading '/'.
+ --> tests/32-missing_leading_slash.rs:5:13
+  |
+5 |     #[route("users")]
+  |             ^^^^^^^

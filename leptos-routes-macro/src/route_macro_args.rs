@@ -1,27 +1,22 @@
-use proc_macro2::Span;
-use proc_macro_error2::abort;
-use crate::ExprWrapper;
-use syn::{Attribute, Expr};
+//! Parses `#[route("/path")]` attributes on route modules.
 
+use proc_macro_error2::abort;
+use proc_macro2::Span;
+use syn::Attribute;
+
+/// The extracted path string and metadata from a `#[route("/...")]` attribute.
+#[derive(Debug)]
 pub struct RouteMacroArgs {
     pub route_ident_span: Span,
 
     /// A path, defined like: "/" or "/users"
     pub route_path_segments: String,
-
-    /// A wrapper view, defined like: "wrap=MainLayout" or "wrap=|| view! { <MainLayout/> }"
-    pub layout: Option<Expr>,
-    pub layout_span: Option<Span>,
-
-    pub fallback: Option<Expr>,
-    pub fallback_span: Option<Span>,
-
-    /// The route view, defined like: "view=SomePage" or "view=|| view! { <SomePage/> }"
-    pub view: Option<Expr>,
-    pub view_span: Option<Span>,
 }
 
 impl RouteMacroArgs {
+    /// Scans `attrs` for a `#[route("/...")]` attribute, validates the path
+    /// (must start with `/`, must not end with `/` unless root, no `//`),
+    /// and returns the parsed args. Returns `None` if no `#[route]` is found.
     pub fn parse(attrs: &[Attribute]) -> Option<RouteMacroArgs> {
         attrs
             .iter()
@@ -29,73 +24,103 @@ impl RouteMacroArgs {
             .and_then(|attr| {
                 let ident = attr.path().get_ident().unwrap();
 
-                attr.parse_args_with(|input: syn::parse::ParseStream| {
-                    //panic!("Input: {:?}", content);
-                    let mut path: Option<String> = None;
-                    let mut layout: Option<Expr> = None;
-                    let mut layout_span: Option<Span> = None;
-                    let mut fallback: Option<Expr> = None;
-                    let mut fallback_span: Option<Span> = None;
-                    let mut view: Option<Expr> = None;
-                    let mut view_span: Option<Span> = None;
+                if matches!(attr.meta, syn::Meta::Path(_)) {
+                    abort!(ident.span(), "Missing path argument. Use `#[route(\"/path\")]`.");
+                }
 
-                    while !input.is_empty() {
-                        let lookahead = input.lookahead1();
-                        if lookahead.peek(syn::LitStr) {
-                            let lit: syn::LitStr = input.parse()?;
-                            let val = lit.value();
-                            if !val.starts_with('/') {
-                                abort!(lit.span(), "Every path must start with a '/'. Add a leading '/'.");
-                            }
-                            if val.ends_with('/') && val.len() > 1 {
-                                abort!(lit.span(), "No path should end with a '/'. Remove the trailing '/'.");
-                            }
-                            if val.contains("//") {
-                                abort!(lit.span(), "Separate each part with one '/'. Coalesce consecutive slashes into one.");
-                            }
-                            path = Some(val);
-                        } else if lookahead.peek(syn::Ident) {
-                            let ident: syn::Ident = input.parse()?;
-                            if ident == "view" {
-                                let _ = input.parse::<syn::Token![=]>()?;
-                                let lit = input.parse::<syn::Lit>().expect("expect lit");
-                                view = Some(ExprWrapper::from_value(&lit)?.0);
-                                view_span = Some(ident.span());
-                            } else if ident == "layout" {
-                                let _ = input.parse::<syn::Token![=]>()?;
-                                let lit = input.parse::<syn::Lit>()?;
-                                layout = Some(ExprWrapper::from_value(&lit)?.0);
-                                layout_span = Some(ident.span());
-                            } else if ident == "fallback" {
-                                let _ = input.parse::<syn::Token![=]>()?;
-                                let lit = input.parse::<syn::Lit>()?;
-                                fallback = Some(ExprWrapper::from_value(&lit)?.0);
-                                fallback_span = Some(ident.span());
-                            } else {
-                                abort!(ident.span(), "Unexpected ident: \"{}\". Expected one of \"layout\", \"fallback\" or \"view\".", ident.to_string());
-                            }
-                        } else {
-                            abort!(input.span(), "Unexpected additional macro input. Remove these tokens.");
-                        }
-
-                        if !input.is_empty() {
-                            let _: syn::Token![,] = input.parse()?;
-                        }
+                match attr.parse_args_with(|input: syn::parse::ParseStream| {
+                    let lookahead = input.lookahead1();
+                    if !lookahead.peek(syn::LitStr) {
+                        abort!(input.span(), "Expected a path string literal, e.g. #[route(\"/users\")].");
                     }
-                    let path = path.expect("expect path to be present");
+                    let lit: syn::LitStr = input.parse()?;
+                    let val = lit.value();
+                    if !val.starts_with('/') {
+                        abort!(lit.span(), "Every path must start with a '/'. Add a leading '/'.");
+                    }
+                    if val.ends_with('/') && val.len() > 1 {
+                        abort!(lit.span(), "No path should end with a '/'. Remove the trailing '/'.");
+                    }
+                    if val.contains("//") {
+                        abort!(lit.span(), "Separate each part with one '/'. Coalesce consecutive slashes into one.");
+                    }
+
+                    if !input.is_empty() {
+                        abort!(input.span(), "Unexpected tokens after path. #[route] only takes a path string. Use layout!(), index!(), and page!() body macros inside the module body to declare components.");
+                    }
 
                     Ok(RouteMacroArgs {
                         route_ident_span: ident.span(),
-                        route_path_segments: path,
-                        layout,
-                        layout_span,
-                        fallback,
-                        fallback_span,
-                        view,
-                        view_span,
+                        route_path_segments: val,
                     })
-                })
-                .ok()
+                }) {
+                    Ok(args) => Some(args),
+                    Err(e) => abort!(ident.span(), "Failed to parse #[route] arguments: {}", e),
+                }
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assertr::prelude::*;
+
+    fn make_attrs(attr_code: &str) -> Vec<Attribute> {
+        let code = format!("{attr_code} fn dummy() {{}}");
+        let item: syn::ItemFn = syn::parse_str(&code).unwrap();
+        item.attrs
+    }
+
+    #[test]
+    fn no_route_attribute_returns_none() {
+        let attrs = make_attrs("#[other(\"/foo\")]");
+        assert_that!(RouteMacroArgs::parse(&attrs)).is_none();
+    }
+
+    #[test]
+    fn empty_attributes_returns_none() {
+        let attrs: Vec<Attribute> = vec![];
+        assert_that!(RouteMacroArgs::parse(&attrs)).is_none();
+    }
+
+    #[test]
+    fn valid_root_path() {
+        let attrs = make_attrs("#[route(\"/\")]");
+        let result = RouteMacroArgs::parse(&attrs);
+        assert_that!(result.as_ref()).is_some();
+        assert_that!(result.unwrap().route_path_segments.as_str()).is_equal_to("/");
+    }
+
+    #[test]
+    fn valid_static_path() {
+        let attrs = make_attrs("#[route(\"/users\")]");
+        let result = RouteMacroArgs::parse(&attrs);
+        assert_that!(result.as_ref()).is_some();
+        assert_that!(result.unwrap().route_path_segments.as_str()).is_equal_to("/users");
+    }
+
+    #[test]
+    fn valid_param_path() {
+        let attrs = make_attrs("#[route(\"/:id\")]");
+        let result = RouteMacroArgs::parse(&attrs);
+        assert_that!(result.as_ref()).is_some();
+        assert_that!(result.unwrap().route_path_segments.as_str()).is_equal_to("/:id");
+    }
+
+    #[test]
+    fn valid_complex_path() {
+        let attrs = make_attrs("#[route(\"/users/:id/posts\")]");
+        let result = RouteMacroArgs::parse(&attrs);
+        assert_that!(result.as_ref()).is_some();
+        assert_that!(result.unwrap().route_path_segments.as_str()).is_equal_to("/users/:id/posts");
+    }
+
+    #[test]
+    fn valid_wildcard_path() {
+        let attrs = make_attrs("#[route(\"/*rest\")]");
+        let result = RouteMacroArgs::parse(&attrs);
+        assert_that!(result.as_ref()).is_some();
+        assert_that!(result.unwrap().route_path_segments.as_str()).is_equal_to("/*rest");
     }
 }

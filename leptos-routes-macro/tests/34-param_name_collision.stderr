@@ -1,0 +1,5 @@
+error: Parameter "id" in route "/:id" shadows the same parameter from ancestor route "/:id". Each dynamic segment name must be unique across the route hierarchy. Maybe use "address_id" instead.
+  --> tests/34-param_name_collision.rs:17:23
+   |
+17 |                     #[route("/:id")]
+   |                       ^^^^^

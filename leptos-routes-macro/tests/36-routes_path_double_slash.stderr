@@ -1,0 +1,5 @@
+error: path must not contain "//". Coalesce consecutive slashes into one.
+ --> tests/36-routes_path_double_slash.rs:3:32
+  |
+3 | #[routes(without_views, path = "/api//v1")]
+  |                                ^^^^^^^^^^

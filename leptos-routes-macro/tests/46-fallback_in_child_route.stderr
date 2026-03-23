@@ -1,0 +1,5 @@
+error: fallback!() can only be used in the top-level #[routes] module, not inside #[route] modules.
+ --> tests/46-fallback_in_child_route.rs:9:9
+  |
+9 |         fallback!(|| view! { "nope" });
+  |         ^^^^^^^^

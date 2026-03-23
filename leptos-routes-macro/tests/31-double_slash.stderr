@@ -1,0 +1,5 @@
+error: Separate each part with one '/'. Coalesce consecutive slashes into one.
+ --> tests/31-double_slash.rs:5:13
+  |
+5 |     #[route("/users//posts")]
+  |             ^^^^^^^^^^^^^^^

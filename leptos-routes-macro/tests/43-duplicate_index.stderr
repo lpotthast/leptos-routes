@@ -1,0 +1,5 @@
+error: Duplicate index!() invocation. Only one index!() per module is allowed.
+  --> tests/43-duplicate_index.rs:11:9
+   |
+11 |         index!(AnotherHome);
+   |         ^^^^^

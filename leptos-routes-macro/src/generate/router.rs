@@ -1,47 +1,71 @@
+//! Generates the `route_tree()` and `router()` functions that return Leptos Router
+//! view markup.
+//!
+//! This module is only active when view generation is enabled (i.e., `without_views`
+//! is not set and a `fallback!()` is provided). The generated `route_tree()` function
+//! contains `<Routes>`, `<ParentRoute>`, and `<Route>` components matching the route
+//! tree. The generated `router()` function wraps `route_tree()` in a `<Router>` for
+//! convenience.
+
 use crate::route_def::RouteDef;
-use crate::{ExprWrapper, RoutesMacroArgs};
 use proc_macro_error2::abort;
 use quote::quote;
+use syn::Expr;
 
+/// Returns the `route_tree()` function token stream, or an empty stream when
+/// `without_views` is set.
 pub fn maybe_generate_routes_component(
-    args: &RoutesMacroArgs,
+    with_views: bool,
+    fallback: Option<Expr>,
     route_defs: &[RouteDef],
 ) -> proc_macro2::TokenStream {
-    if args.with_views {
-        generate_routes_component(route_defs, args.fallback.clone())
+    if with_views {
+        generate_routes_component(route_defs, fallback)
     } else {
-        quote! {
-            /// Not implemented!
-            ///
-            /// Use `#[routes(with_views, fallback="SomeComponent")] ...`
-            /// for this function to be generated.
-            pub fn generated_routes() -> ! {
-                unimplemented!();
-            }
-        }
+        // Don't generate `route_tree()` at all.
+        // If the user tries to call it, they'll get a clear compile error:
+        //   "cannot find function `route_tree` in module `routes`"
+        // To enable it, add `fallback!(YourFallbackComponent)` in the module body.
+        quote! {}
     }
 }
 
+/// Generates the `route_tree()` function body.
+///
+/// Recursively walks the route tree via the inner `process_route_def()`:
+/// - **Parent routes** (with children) become `<ParentRoute>`. If `layout!()` is
+///   present, its expression is used as the view; otherwise an implicit `<Outlet/>`
+///   passthrough is generated. An `index!()` expression becomes a nested
+///   `<Route path="">` for the parent's own path.
+/// - **Leaf routes** (no children) become `<Route>`, requiring `page!()`.
+/// - Using `page!()` on a parent route is an error.
 pub fn generate_routes_component(
     route_defs: &[RouteDef],
-    fallback: Option<ExprWrapper>,
+    fallback: Option<Expr>,
 ) -> proc_macro2::TokenStream {
-    let fallback = fallback.expect("fallback is required").0;
-
-    let mut ts = quote! {};
-
     fn process_route_def(route_def: &RouteDef, ts: &mut proc_macro2::TokenStream) {
         let full_path = &route_def.full_module_path_to_struct_def();
 
-        if !route_def.children.is_empty() {
-            let layout = route_def
-                .layout
-                .as_ref()
-                .map(|v| quote! { view=#v })
-                .unwrap_or_else(|| abort! {
+        if route_def.children.is_empty() {
+            let view = if let Some(v) = &route_def.page {
+                quote! { view=#v }
+            } else {
+                abort! {
                     route_def.route_ident_span,
-                    "Any #[route] with child routes requires a \"layout\" view! Set an optional \"fallback\" view to handle the immediate path. Remember to embed an `<Outlet />` in your \"layout\" view.`"
-                });
+                    "Leaf routes (without children) require a page!() declaration.";
+                    help = "Add `page!(YourPage)` inside the module body."
+                }
+            };
+
+            ts.extend([quote! {
+                <Route path=#full_path.path() #view/>
+            }]);
+        } else {
+            let layout = if let Some(v) = &route_def.layout {
+                quote! { view=#v }
+            } else {
+                quote! { view=move || ::leptos::prelude::view! { <Outlet/> } }
+            };
 
             ts.extend([quote! {
                 <ParentRoute path=#full_path.path() #layout>
@@ -51,51 +75,34 @@ pub fn generate_routes_component(
                     process_route_def(child, ts);
                 }
 
-                let fallback = route_def.fallback.as_ref().map(|v| quote! { view=#v });
-                if let Some(fallback) = fallback {
+                if let Some(v) = &route_def.index {
+                    let index = quote! { view=#v };
                     ts.extend([quote! {
-                        <Route path=::leptos_router::path!("") #fallback/>
+                        <Route path=::leptos_router::path!("") #index/>
                     }]);
-                } else if route_def.view.is_some() {
-                    abort!(
-                        route_def.view_span.expect("present"),
-                        "Any #[route] with child routes requires a \"layout\" and an optional \"fallback\". \"view\" must only be set on leaf routes. Replace \"view\" with \"fallback\" or remove the argument."
-                    );
                 }
             }
             ts.extend([quote! {
                 </ParentRoute>
             }]);
-        } else {
-            let view = route_def
-                .view
-                .as_ref()
-                .map(|v| quote! { view=#v })
-                .unwrap_or_else(|| {
-                    abort! {
-                        route_def.route_ident_span,
-                        "Any leaf #[route] (without children) requires a \"view\"!"
-                    }
-                });
-
-            ts.extend([quote! {
-                <Route path=#full_path.path() #view/>
-            }]);
         }
     }
 
+    // SAFETY: Guaranteed by validation in routes() before calling generate.
+    let fallback = fallback.expect("guaranteed by routes() validation");
+
+    let mut ts = quote! {};
     for route_def in route_defs {
         process_route_def(route_def, &mut ts);
     }
 
     quote! {
-        pub fn generated_routes() -> impl ::leptos::IntoView {
+        pub fn route_tree() -> impl ::leptos::IntoView {
             use ::leptos_router::components::Routes;
             use ::leptos_router::components::ParentRoute;
             use ::leptos_router::components::Route;
+            use ::leptos_router::components::Outlet;
             use ::leptos::prelude::*;
-            // This allows users to import or define their component in the "mod routes { ... }"
-            // surrounding module.
             use super::*;
 
             view! {
@@ -104,5 +111,27 @@ pub fn generate_routes_component(
                 </Routes>
             }
         }
+    }
+}
+
+/// Returns the `router()` convenience function token stream, or an empty
+/// stream when `without_views` is set.
+///
+/// `router()` wraps `route_tree()` in a `<Router>`, covering the common case
+/// where no custom `<Router>` props are needed.
+pub fn maybe_generate_router_fn(with_views: bool) -> proc_macro2::TokenStream {
+    if with_views {
+        quote! {
+            pub fn router() -> impl ::leptos::IntoView {
+                use ::leptos_router::components::Router;
+                use ::leptos::prelude::*;
+
+                view! {
+                    <Router>{ route_tree() }</Router>
+                }
+            }
+        }
+    } else {
+        quote! {}
     }
 }

@@ -2,207 +2,168 @@
 
 Declaratively define the routes for your Leptos project.
 
+## Why?
+
+Standard Leptos routing uses untyped path strings — there's no way to **refer** to a route from elsewhere in your app
+without hand-writing URLs. `leptos-routes` generates a struct per route so you get type-safe `path()` for `<Route>`
+declarations and `materialize()` for building links, plus optional full router generation.
+
 ## Example
 
 ```rust
+use leptos::prelude::*;
+use leptos_router::components::Outlet;
 use leptos_routes::routes;
+
+// Component definitions omitted for brevity...
+// Everywhere a `page!`, `layout!` or `fallback!` macro is used,
+// you can pass any view, so also `|| view! { ... }` closures!
 
 #[routes]
 pub mod routes {
-    #[route("/")]
-    pub mod root {}
+    fallback!(Err404);
+
+    layout!(MainLayout);
+    index!(Dashboard);
+
+    #[route("/welcome")]
+    mod welcome {
+        page!(Welcome);
+    }
 
     #[route("/users")]
-    pub mod users {
-      
+    mod users {
+        layout!(UsersLayout);
+        index!(NoUser);
+
         #[route("/:id")]
-        pub mod user {
-          
+        mod user {
+            layout!(UserLayout);
+            index!(User);
+
             #[route("/details")]
-            pub mod details {}
-        }
-    }
-}
-```
-
-You can also define the view for each route on the route declaration and simply let `leptos-routes` generate
-your router implementation.
-
-```rust
-use assertr::assert_that;
-use assertr::prelude::PartialEqAssertions;
-use leptos::prelude::*;
-use leptos_router::components::{Outlet, Router};
-use leptos_router::location::RequestUrl;
-use leptos_routes::routes;
-
-#[routes(with_views, fallback = "|| view! { <Err404/> }")]
-pub mod routes {
-
-    #[route("/", layout = "MainLayout", fallback = "Dashboard")]
-    pub mod root {
-
-        #[route("/welcome", view = "Welcome")]
-        pub mod welcome {}
-
-        #[route("/users", layout = "UsersLayout", fallback = "NoUser")]
-        pub mod users {
-
-            #[route("/:id", layout = "UserLayout", fallback="User")]
-            pub mod user {
-
-                #[route("/details", view = "UserDetails")]
-                pub mod details {}
+            mod details {
+                page!(UserDetails);
             }
         }
     }
 }
 
-#[component]
-fn Err404() -> impl IntoView { view! { "Err404" } }
-#[component]
-fn MainLayout() -> impl IntoView { view! { <div id="main-layout"> <Outlet/> </div> } }
-#[component]
-fn UsersLayout() -> impl IntoView { view! { <div id="users-layout"> <Outlet/> </div> } }
-#[component]
-fn UserLayout() -> impl IntoView { view! { <div id="user-layout"> <Outlet/> </div> } }
-#[component]
-fn Dashboard() -> impl IntoView { view! { "Dashboard" } }
-#[component]
-fn Welcome() -> impl IntoView { view! { "Welcome" } }
-#[component]
-fn NoUser() -> impl IntoView { view! { "NoUser" } }
-#[component]
-fn User() -> impl IntoView { view! {"User" } }
-#[component]
-fn UserDetails() -> impl IntoView { view! { "UserDetails" } }
-
-fn main() {
-    fn app() -> impl IntoView {
-        view! {
-            <Router>
-                { routes::generated_routes() }
-            </Router>
-        }
-    }
-
-    let _ = Owner::new_root(None);
-
-    provide_context::<RequestUrl>(RequestUrl::new(
-        routes::root::users::user::Details
-            .materialize("42")
-            .as_str(),
-    ));
-    assert_that(app().to_html()).is_equal_to(r#"<div id="main-layout"><div id="users-layout"><div id="user-layout">UserDetails</div></div></div>"#);
+fn app() -> impl IntoView {
+    routes::router()
 }
 ```
 
-## What does it do?
+To generate only route structs without views, use `#[routes(without_views)]`.
+See [`examples/routes-only`](examples/routes-only) for an example.
 
-The `routes` proc-macro parses the module hierarchy and generates a struct for each individual route in your
-application. You can access these routes through your `routes` module and any of its submodules.
+## Generated API
 
-The example above will create the following structs (the module names determine the struct names, the module hierarchy
-will be kept.):
+The macro generates a struct per route, accessible through the module hierarchy:
 
 ```rust
-let _ = routes::Root;
-let _ = routes::Users;
-let _ = routes::users::User;
-let _ = routes::users::user::Details;
+routes::Root
+routes::Welcome
+routes::Users
+routes::users::User
+routes::users::user::Details
 ```
 
-Each of these structs implements the following functions:
+Each struct provides:
 
-- `path() -> Segments`, where `Segments` is a dynamically sized tuple based on the amount of segments present in the
-  path passed to `route`. This only returns the segments declared on the currently evaluated `mod` itself and does not
-  also include all of its prent segments.
-
-  This makes `path` usable in `<Route>` declarations, where you otherwise would have directly used the `path!` macro
-  from `leptos_router`, or anywhere else where some kind of `Segments` are required.
+- **`path()`** — local path segments (matching `leptos_router::path!()` output) for use in `<Route>` declarations.
   ```rust
-  use assertr::prelude::*;
-  assert_that(routes::users::User.path()).is_equal_to((ParamSegment("id"),));
+  assert_that!(routes::users::User.path()).is_equal_to((ParamSegment("id"),));
+  ```
+- **`path_pattern() -> &'static str`** — the full path pattern from root to this route.
+  ```rust
+  assert_that!(routes::users::user::Details.path_pattern()).is_equal_to("/users/:id/details");
+  ```
+- **`materialize(...) -> String`** — builds a concrete URL, replacing dynamic segments with provided values (any
+  `impl Display`). Usable anywhere a `ToHref` is expected. Use `materialize(...)` to build links anywhere in your app!
+  ```rust
+  assert_that!(routes::users::user::Details.materialize(42u32)).is_equal_to("/users/42/details");
   ```
 
-- `materialize(...) -> String` materializes a usable URL path from the full list of path-segments, including all parent
-  segments.
+When views are enabled (the default), two additional functions are generated at the root module level:
 
-  Use it to create links to parts of your application. As `IntoHref` is implemented for `String`, the return value can
-  be used anywhere an `IntoHref` is required, for example Leptos's `<A>` component!
+- **`route_tree()`** — returns the `<Routes>` view tree. Use when you need a custom `<Router>` component declaration.
+- **`router()`** — wraps `route_tree()` in `<Router>` for the common case. Prefer this instead.
 
-  This function is automatically generated to take all necessary user-inputs in order to replace
-  all dynamic path segments with concrete values, meaning that `materialize` might take 0-n inputs when the full path
-  has n segments.
-  ```rust
-  use assertr::prelude::*;
-  assert_that(routes::users::user::Details.materialize("42")).is_equal_to("/users/42/details");
-  ```
+A `Route` enum is also generated with a variant per route. It derives `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`,
+`Hash`, implements `Display`, and provides `path_pattern()` and `all() -> &'static [Route]`.
 
-## Motivation
+## Path Syntax
 
-Having this router declaration
+Each `#[route("...")]` path must start with `/`, must not end with `/` (except the root `"/"`), and must not contain
+`//`.
 
-```
-<Router>
-  <Routes>
-    <Route path=path!("/") view=Home/>
-    <ParentRoute path=path!("/users") view=Users/>
-      <ParentRoute path=path!("/:id") view=User/>
-        <Route path=path!("/details") view=Details/>
-      </ParentRoute>
-    </ParentRoute>
-  </Routes>
-</Router>
-```
+| Syntax    | Example    | Segment type  | `materialize()` parameter  |
+|-----------|------------|---------------|----------------------------|
+| `/foo`    | `"/users"` | Static        | *(none)*                   |
+| `/:name`  | `"/:id"`   | Param         | `id: impl Display`         |
+| `/:name?` | `"/:id?"`  | OptionalParam | `id: Option<impl Display>` |
+| `/*name`  | `"/*rest"` | Wildcard      | `rest: impl Display`       |
 
-Leaves us with perfectly functional routing, but with no way to **refer** to any route.
+Parameter names that are Rust keywords get an underscore appended (e.g. `:type` → `type_: impl Display`).
 
-In many parts of our application, we might want to link to some other internal place.
-We would have to write these links by hand, leaving all possible compile-time checks on the table.
+## View Macros
 
-I wanted some constant value representing a route which can be used both in `<Route>` declarations as well as in `<a>`
-links or any other place consuming some `Segments` or anything `ToHref`.
+When view generation is enabled (the default):
 
-Creating constants for the values returned by the `path` macro is cumbersome because of the dynamic types and because
-nested route declarations only need the additional path segments specified, these constants would be meaningless without
-establishing some parent associations. Only then would we be able to format a full link.
+- **`fallback!(/* view */)`** — required at the routes module root. The 404 / path-not-found view.
+- **`layout!(/* view */)`** — optional on parent routes. Wraps children. The view must render `<Outlet/>`. Parents
+  without a layout get an implicit `<Outlet/>` passthrough.
+- **`index!(/* view */)`** — optional on parent routes. Shown when the parent is matched directly without matching any
+  child.
+- **`page!(/* view */)`** — required on leaf routes. The view rendered for this route.
 
-Materializing a link from a list of path segments also requires replacing any dynamic/placeholder segments with concrete
-values. The theoretically unlimited number of combinations of segments makes this hard to implement as a trait function.
+## Naming Conventions
 
-Therefore, auto-generating structs for your routes, and materialization-function only for the combinations of segments
-used seemed alright.
+Module names map to `PascalCase` struct names: `mod user_details` → `struct UserDetails`.
 
-With the above/initially presented `routes` module, you can write the router declaration as
+`Route` enum variants concatenate the PascalCase names of all intermediate modules (between the root and the struct):
+`routes::users::user::Details` → `Route::UsersUserDetails`.
 
-```
-<Router>
-  <Routes>
-    <Route path=routes::Root.path() view=Home/>
-    <ParentRoute path=routes::Users.path() view=Users/>
-      <ParentRoute path=routes:users::User.path() view=User/>
-        <Route path=routes::users::user::Details.path() view=Details/>
-      </ParentRoute>
-    </ParentRoute>
-  </Routes>
-</Router>
+## Examples
+
+## basic
+
+A tiny `leptos_axum` driven SSR web server demonstrating the default mode with full router generation:
+`fallback!()`, `layout!()`, `index!()`, `page!()`, and the generated `router()` function.
+
+```sh
+cd examples/basic && cargo run
 ```
 
-and also create links with the same structs as in
+Then open [http://127.0.0.1:3000](http://127.0.0.1:3000) in your browser. Navigate to `/`, `/users`, and `/users/42` to
+see the different views.
 
-```
-<a href=routes::users::user::Details.materialize("42")>
-  "User 42"
-</a>
+## routes-only
+
+A CLI program demonstrating `#[routes(without_views)]` for generating only route structs,
+`path()`, `path_pattern()`, `materialize()`, and the `Route` enum — without any view or router
+generation. Use this mode when you want type-safe route definitions but manage the router yourself.
+
+```sh
+cd examples/routes-only && cargo run
 ```
 
 ## Testing
-
-Run all tests of all creates using the `--all` flag when in the root directory:
 
     cargo test --all
 
 ## MSRV
 
-1.85.0 (as of v0.3) - upgrade to the 2024 edition
+- As of `0.4.0` the MSRV is `1.88.0`
+
+## See also
+
+[`leptos-routable`](https://crates.io/crates/leptos-routable) is another community crate for type-safe routing in
+Leptos, using a `#[derive(Routable)]` enum approach. Both crates eliminate string-typed route paths but differ in style:
+`leptos-routes` uses a module hierarchy that mirrors the URL tree, while `leptos-routable` uses enum variants with route
+attributes.
+
+We believe the module-based approach scales better: the nesting is visible at a glance, component declarations live
+right next to their route, IDE autocompletion follows the module path, and `materialize()` gives you a unique,
+compiler-checked function signature per route so you can never forget a parameter.

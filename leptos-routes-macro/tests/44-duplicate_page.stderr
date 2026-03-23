@@ -1,0 +1,5 @@
+error: Duplicate page!() invocation. Only one page!() per module is allowed.
+  --> tests/44-duplicate_page.rs:11:9
+   |
+11 |         page!(AnotherHome);
+   |         ^^^^
