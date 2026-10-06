@@ -32,6 +32,13 @@ pub fn maybe_generate_routes_component(
 
 /// Generates the `route_tree()` function body.
 ///
+/// The view expressions of `layout!()`, `index!()`, `page!()` and `fallback!()` resolve names in
+/// the scope enclosing the `#[routes]` module first, just like in the generated struct methods
+/// (see `documentation/architecture.md`): `page!(Users)` means the component `Users`, not the
+/// route struct `Users`. Everything this function generates itself is therefore referenced by
+/// paths no name of that scope can shadow: Route structs as `self::...`, everything else by
+/// absolute paths or the reserved `__leptos_router_components` alias.
+///
 /// Recursively walks the route tree via the inner `process_route_def()`:
 /// - **Parent routes** (with children) become `<ParentRoute>`. If `layout!()` is
 ///   present, its expression is used as the view; otherwise an implicit `<Outlet/>`
@@ -44,7 +51,8 @@ pub fn generate_routes_component(
     fallback: Option<Expr>,
 ) -> proc_macro2::TokenStream {
     fn process_route_def(route_def: &RouteDef, ts: &mut proc_macro2::TokenStream) {
-        let full_path = &route_def.full_module_path_to_struct_def();
+        let struct_path = route_def.full_module_path_to_struct_def();
+        let full_path = quote! { self::#struct_path };
 
         if route_def.children.is_empty() {
             let view = if let Some(v) = &route_def.page {
@@ -58,17 +66,17 @@ pub fn generate_routes_component(
             };
 
             ts.extend([quote! {
-                <Route path=#full_path.path() #view/>
+                <__leptos_router_components::Route path=#full_path.path() #view/>
             }]);
         } else {
             let layout = if let Some(v) = &route_def.layout {
                 quote! { view=#v }
             } else {
-                quote! { view=move || ::leptos::prelude::view! { <Outlet/> } }
+                quote! { view=move || ::leptos::view! { <__leptos_router_components::Outlet/> } }
             };
 
             ts.extend([quote! {
-                <ParentRoute path=#full_path.path() #layout>
+                <__leptos_router_components::ParentRoute path=#full_path.path() #layout>
             }]);
             {
                 for child in &route_def.children {
@@ -78,12 +86,12 @@ pub fn generate_routes_component(
                 if let Some(v) = &route_def.index {
                     let index = quote! { view=#v };
                     ts.extend([quote! {
-                        <Route path=::leptos_router::path!("") #index/>
+                        <__leptos_router_components::Route path=::leptos_router::path!("") #index/>
                     }]);
                 }
             }
             ts.extend([quote! {
-                </ParentRoute>
+                </__leptos_router_components::ParentRoute>
             }]);
         }
     }
@@ -98,17 +106,19 @@ pub fn generate_routes_component(
 
     quote! {
         pub fn route_tree() -> impl ::leptos::IntoView {
-            use ::leptos_router::components::Routes;
-            use ::leptos_router::components::ParentRoute;
-            use ::leptos_router::components::Route;
-            use ::leptos_router::components::Outlet;
+            // The `fallback!()` expression is only compiled here, and may rely on this.
+            #[allow(unused_imports)]
             use ::leptos::prelude::*;
+            // Lets the view expressions resolve names in the enclosing scope first.
+            #[allow(unused_imports, clippy::wildcard_imports)]
             use super::*;
+            // View tags can't start with `::`. A name no scope uses instead.
+            use ::leptos_router::components as __leptos_router_components;
 
-            view! {
-                <Routes fallback=#fallback>
+            ::leptos::view! {
+                <__leptos_router_components::Routes fallback=#fallback>
                     #ts
-                </Routes>
+                </__leptos_router_components::Routes>
             }
         }
     }

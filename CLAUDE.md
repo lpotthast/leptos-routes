@@ -78,11 +78,12 @@ Tests use `trybuild` for compile-time testing. The test harness is `leptos-route
 
 Tests are grouped by number range:
 - **01-09**: Core struct generation (pass tests)
-- **10-18**: View rendering and extended struct tests (pass tests)
+- **10-19**: View rendering and extended struct tests (pass tests)
 - **20-26**: `#[routes()]` attribute errors (compile-fail)
 - **30-36**: `#[route()]` path validation errors (compile-fail)
 - **40-48**: Body macro conflicts & duplicates (compile-fail)
 - **50-55**: Structural/hierarchy errors (compile-fail)
+- **60-69**: Recommended usage patterns, as documented in the README (pass tests)
 
 Adding a new integration test:
 1. Create a numbered `.rs` file in `leptos-routes-macro/tests/` in the appropriate group (e.g., `56-my-error-test.rs`).
@@ -96,7 +97,7 @@ Unit tests live as `#[cfg(test)] mod tests` at the bottom of source files in `le
 
 ## Key Details
 
-- Rust edition 2024, MSRV 1.88
+- Rust edition 2024, MSRV 1.88 (library code only; running the tests requires Rust 1.89 because of the `assertr` dev-dependency)
 - Route structs are unit structs with derived `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, and `Hash`
 - `materialize()` builds full URLs by recursively calling parent route materializers
 - `path()` returns just the local path segment(s) for use in `<Route>` declarations

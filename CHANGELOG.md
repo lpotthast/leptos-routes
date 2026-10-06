@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.2] - 2026-10-06
+
+### Fixed
+
+- `route_tree()` no longer resolves its route struct references through the scope enclosing the `#[routes]` module.
+  A component or glob-imported item named like a route struct no longer replaces the struct in `<Route path=...>`,
+  which previously could lead compilation to fail with a "no method named `path` found" error.
+
+### Changed
+
+- Upgraded `syn` to version 3.
+- All dependencies are now declared with `default-features = false`, enabling only the features actually required.
+- Published packages now only contain the crate sources and README. The trybuild test suite is no longer shipped.
 
 ## [0.4.1] - 2026-03-23
 
@@ -101,7 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `Route` enum with a variant per route.
 - Recursive `materialize()` building full URLs through the parent chain.
 
-[Unreleased]: https://github.com/lpotthast/leptos-routes/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/lpotthast/leptos-routes/compare/v0.4.2...HEAD
+
+[0.4.2]: https://github.com/lpotthast/leptos-routes/compare/v0.4.1..v0.4.2
 
 [0.4.1]: https://github.com/lpotthast/leptos-routes/compare/v0.4.0..v0.4.1
 

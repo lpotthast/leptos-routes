@@ -23,6 +23,7 @@ fn tests() {
     t.pass("tests/16-path_prefix_with_views.rs");
     t.pass("tests/17-explicit_root_path_prefix.rs");
     t.pass("tests/18-router_fn.rs");
+    t.pass("tests/19-route_names_shared_with_enclosing_scope.rs");
 
     // Group 3: #[routes()] attribute errors
     t.compile_fail("tests/20-bare_routes_error.rs");
@@ -60,4 +61,7 @@ fn tests() {
     t.compile_fail("tests/53-leaf_route_without_page.rs");
     t.compile_fail("tests/54-root_macros_with_route_slash_conflict.rs");
     t.compile_fail("tests/55-root_page_with_children_error.rs");
+
+    // Group 7: Recommended usage patterns
+    t.pass("tests/60-routes_file_with_reexported_definitions.rs");
 }

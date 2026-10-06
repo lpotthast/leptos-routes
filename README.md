@@ -1,5 +1,10 @@
 # leptos-routes
 
+[![crates.io](https://img.shields.io/crates/v/leptos-routes.svg)](https://crates.io/crates/leptos-routes)
+[![docs.rs](https://docs.rs/leptos-routes/badge.svg)](https://docs.rs/leptos-routes)
+[![CI](https://github.com/lpotthast/leptos-routes/actions/workflows/ci.yml/badge.svg)](https://github.com/lpotthast/leptos-routes/actions/workflows/ci.yml)
+[![MSRV](https://img.shields.io/badge/rust-1.88%2B-blue.svg)](https://www.rust-lang.org/)
+
 Declaratively define the routes for your Leptos project.
 
 ## Why?
@@ -10,49 +15,74 @@ declarations and `materialize()` for building links, plus optional full router g
 
 ## Example
 
+Define the routes of your app in their own `routes.rs`:
+
 ```rust
-use leptos::prelude::*;
-use leptos_router::components::Outlet;
+// src/routes.rs
 use leptos_routes::routes;
 
-// Component definitions omitted for brevity...
-// Everywhere a `page!`, `layout!` or `fallback!` macro is used,
-// you can pass any view, so also `|| view! { ... }` closures!
-
 #[routes]
-pub mod routes {
-    fallback!(Err404);
+mod defs {
+    use crate::pages;
 
-    layout!(MainLayout);
-    index!(Dashboard);
+    // Everywhere a `fallback!`, `layout!`, `index!` or `page!` macro is used,
+    // you can pass any view, so also `|| view! { ... }` closures!
+    fallback!(pages::Err404);
+
+    layout!(pages::MainLayout);
+    index!(pages::Dashboard);
 
     #[route("/welcome")]
     mod welcome {
-        page!(Welcome);
+        page!(pages::Welcome);
     }
 
     #[route("/users")]
     mod users {
-        layout!(UsersLayout);
-        index!(NoUser);
+        layout!(pages::UsersLayout);
+        index!(pages::NoUser);
 
         #[route("/:id")]
         mod user {
-            layout!(UserLayout);
-            index!(User);
+            layout!(pages::UserLayout);
+            index!(pages::User);
 
             #[route("/details")]
             mod details {
-                page!(UserDetails);
+                page!(pages::UserDetails);
             }
         }
     }
 }
+pub use defs::*;
+```
+
+Then render the router and link to your routes from anywhere:
+
+```rust
+// src/main.rs
+mod pages;
+mod routes;
 
 fn app() -> impl IntoView {
     routes::router()
 }
+
+// Somewhere in a component:
+view! { <a href=routes::users::User.materialize(42)>"User 42"</a> }
 ```
+
+### Why this layout?
+
+- Rust does not (yet) allow `#![routes]` on the `routes.rs` file module itself. So `#[routes]` annotates the private
+  `defs` module, and `pub use defs::*;` re-exports everything it generates into `routes`.
+- Keep the file scope free of other imports: Names there compete with the re-exported route structs (an imported
+  component `Users` would hide `routes::Users`). Import what your views need inside `defs`.
+- Refer to components through their module (e.g. in `pages::Users`), as a component imported under a route struct's
+  name could conflict with it.
+
+Alternatively, annotate a `pub mod routes { ... }` in an existing file, e.g. next to your `App`. View expressions then
+resolve names in that file's scope first: `page!(Users)` refers to the component, not the route struct.
 
 To generate only route structs without views, use `#[routes(without_views)]`.
 See [`examples/routes-only`](examples/routes-only) for an example.
@@ -130,7 +160,8 @@ Module names map to `PascalCase` struct names: `mod user_details` → `struct Us
 ## basic
 
 A tiny `leptos_axum` driven SSR web server demonstrating the default mode with full router generation:
-`fallback!()`, `layout!()`, `index!()`, `page!()`, and the generated `router()` function.
+`fallback!()`, `layout!()`, `index!()`, `page!()`, and the generated `router()` function. It uses the recommended
+layout, with the routes in [`src/routes.rs`](examples/basic/src/routes.rs).
 
 ```sh
 cd examples/basic && cargo run

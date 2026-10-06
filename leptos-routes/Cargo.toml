@@ -12,6 +12,7 @@ Fluent route declarations for the Leptos web framework.
 """
 categories = ["web-programming", "gui"]
 keywords = ["leptos-routes", "leptos", "routes", "routing", "router"]
+include = ["src/**/*.rs"]
 
 [dependencies]
-leptos-routes-macro = { version = "0.4.0", path = "../leptos-routes-macro" }
+leptos-routes-macro = { version = "0.4.0", path = "../leptos-routes-macro", default-features = false }

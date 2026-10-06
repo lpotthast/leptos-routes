@@ -1,72 +1,7 @@
 use leptos::prelude::*;
-use leptos_router::components::Outlet;
-use leptos_routes::routes;
 
-#[component]
-fn NotFound() -> impl IntoView {
-    view! { <h1>"404 - Not Found"</h1> }
-}
-
-#[component]
-fn MainLayout() -> impl IntoView {
-    view! {
-        <nav>
-            <a href=routes::Root.materialize()>"Home"</a>
-            " | "
-            <a href=routes::Users.materialize()>"Users"</a>
-        </nav>
-        <main>
-            <Outlet/>
-        </main>
-    }
-}
-
-#[component]
-fn Home() -> impl IntoView {
-    view! { <h1>"Home"</h1><p>"Welcome to the leptos-routes basic example."</p> }
-}
-
-#[component]
-fn UsersLayout() -> impl IntoView {
-    view! {
-        <div id="users">
-            <Outlet/>
-        </div>
-    }
-}
-
-#[component]
-fn UsersList() -> impl IntoView {
-    view! {
-        <h1>"Users"</h1>
-        <ul>
-            <li><a href=routes::users::User.materialize(42)>"User 42"</a></li>
-        </ul>
-    }
-}
-
-#[component]
-fn UserPage() -> impl IntoView {
-    view! { <h1>"User Page"</h1> }
-}
-
-#[routes]
-pub mod routes {
-    fallback!(NotFound);
-    layout!(MainLayout);
-    index!(Home);
-
-    #[route("/users")]
-    mod users {
-        layout!(UsersLayout);
-        index!(UsersList);
-
-        #[route("/:id")]
-        mod user {
-            page!(UserPage);
-        }
-    }
-}
+mod pages;
+mod routes;
 
 #[component]
 fn App() -> impl IntoView {

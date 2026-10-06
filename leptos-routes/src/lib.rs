@@ -11,6 +11,30 @@
 //! root module to set the 404 handler. To generate only route structs without view
 //! code, use `#[routes(without_views)]`.
 //!
+//! Put the routes of your app in their own `routes.rs`, in a private module whose generated items
+//! are re-exported, so that the rest of your app refers to them as `routes::Users`:
+//!
+//! ```ignore
+//! // src/routes.rs
+//! use leptos_routes::routes;
+//!
+//! #[routes]
+//! mod defs {
+//!     use crate::pages;
+//!
+//!     fallback!(pages::NotFound);
+//!
+//!     #[route("/users")]
+//!     mod users {
+//!         page!(pages::Users);
+//!     }
+//! }
+//! pub use defs::*;
+//! ```
+//!
+//! Import nothing but the `routes` macro outside of `defs`, as every name there competes with the
+//! re-exported route structs. See the README for details.
+//!
 //! See [routes] for more information.
 
 /// Re-exports all procedural macros from the implementation crate.

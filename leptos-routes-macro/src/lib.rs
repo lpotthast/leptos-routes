@@ -331,6 +331,34 @@ impl syn::parse::Parse for RoutesMacroArgs {
 /// This creates an implicit root route, generating a `Root` struct and wrapping all
 /// child routes. This eliminates the need for an explicit `#[route("/")]` wrapper module.
 ///
+/// # Recommended layout
+///
+/// Annotate a private module in a `routes.rs` file and re-export its items, so that routes are
+/// referred to as `routes::Users`. Rust does not (yet) allow `#![routes]` on the file module itself.
+///
+/// ```ignore
+/// // src/routes.rs
+/// use leptos_routes::routes;
+///
+/// #[routes]
+/// mod defs {
+///     use crate::pages;
+///
+///     fallback!(pages::NotFound);
+///
+///     #[route("/users")]
+///     mod users {
+///         page!(pages::Users);
+///     }
+/// }
+/// pub use defs::*;
+/// ```
+///
+/// Import nothing but the `routes` macro outside of `defs`: Every name there competes with the
+/// re-exported route structs. Import what the views need inside `defs`, and refer to components
+/// through their module (`pages::Users`), as a component imported under the name of a route struct
+/// conflicts with it.
+///
 /// # Arguments
 ///
 /// - `without_views` — disables view/router generation (no `route_tree()` function).
